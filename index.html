@@ -50,7 +50,6 @@
         document.addEventListener('keyup', ev => {
             if (ev.keyCode === 116) return;
             // locknuti kostky ve vzduchu - spawnout novou kostku - cil je dostat se co nejvejs s co nejmin kostkama
-            console.debug(boxA)
             console.debug(selectedBox)
             let allK = Composite.allBodies(engine.world).filter(x => x.label === 'k');
             console.debug(allK)
@@ -75,7 +74,7 @@
             }
             if (ev.keyCode === 70 || ev.keyCode === 102) {
                 // f
-                selectedBox = selectedBox === allK.length ? 0 : selectedBox + 1;
+                selectedBox = selectedBox === allK.length - 1 ? 0 : selectedBox + 1;
                 allK.map(x => {
                     x.render.fillStyle = defaultBoxColor;
                 });
