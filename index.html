@@ -20,6 +20,9 @@
     <div>selected:
         <span id="selebox"></span>
     </div>
+    <div>height:
+        <span id="heig"></span>
+    </div>
 
     <script src="node_modules/matter-js/build/matter.js"></script>
     <script src="index.js"></script>
@@ -30,6 +33,10 @@
         var keyupTimer = 0;
         let velInterval = null;
 
+        let maxHeight = 0;
+        let leftKeyDown = false;
+        let rightKeyDown = false;
+
         document.addEventListener('keydown', ev => {
             if (ev.keyCode === 38) {
                 // up
@@ -38,6 +45,14 @@
                     velInterval = setInterval(() => document.getElementById('vel').innerText = -getUpVel(), 10);
                 }
             }
+            if (ev.keyCode === 39) {
+                // right 
+                rightKeyDown = true;
+            }
+            if (ev.keyCode === 37) {
+                // right 
+                leftKeyDown = true;
+            }
         })
 
         let getUpVel = () => {
@@ -45,6 +60,14 @@
             let vel = -(Date.now() - keyupTimer) / 80;
             vel = vel < -20 ? -20 : vel;
             return vel;
+        }
+
+        let changeBox = () => {
+            selectedBox = selectedBox === Composite.allBodies(engine.world).filter(x => x.label === 'k').length - 1 ? 0 : selectedBox + 1;
+            Composite.allBodies(engine.world).filter(x => x.label === 'k').map(x => {
+                x.render.fillStyle = defaultBoxColor;
+            });
+            document.getElementById('selebox').innerText = selectedBox;
         }
 
         document.addEventListener('keyup', ev => {
@@ -56,17 +79,26 @@
             let sb = allK[selectedBox];
             if (ev.keyCode === 39) {
                 // right 
-                Body.setVelocity(sb, { x: 5, y: sb.velocity.y })
+                // rightKeyDown = false;
+                // if (velInterval === 0) return;
+                // Body.setVelocity(sb, { x: 5, y: sb.velocity.y })
             }
             if (ev.keyCode === 37) {
                 // left
-                Body.setVelocity(sb, { x: -5, y: sb.velocity.y })
+                // leftKeyDown = false;
+                // if (velInterval === 0) return;
+                // Body.setVelocity(sb, { x: -5, y: sb.velocity.y })
             }
             if (ev.keyCode === 38) {
                 // up
-                Body.setVelocity(sb, { x: sb.velocity.x, y: getUpVel() })
+                let xVel = 0;
+                if (leftKeyDown) xVel -= 5;
+                if (rightKeyDown) xVel += 5;
+                Body.setVelocity(sb, { x: xVel, y: getUpVel() })
                 clearInterval(vel);
                 keyupTimer = 0;
+                leftKeyDown = false;
+                rightKeyDown = false;
             }
             if (ev.keyCode === 40) {
                 // down
@@ -74,13 +106,9 @@
             }
             if (ev.keyCode === 70 || ev.keyCode === 102) {
                 // f
-                selectedBox = selectedBox === allK.length - 1 ? 0 : selectedBox + 1;
-                allK.map(x => {
-                    x.render.fillStyle = defaultBoxColor;
-                });
+                changeBox();
                 sb = allK[selectedBox];
                 sb.render.fillStyle = selectedBoxColor;
-                document.getElementById('selebox').innerText = selectedBox;
             }
             if (ev.keyCode === 83 || ev.keyCode === 115) {
                 // s
@@ -89,9 +117,37 @@
             }
             if (ev.keyCode === 32) {
                 // mezernik
-                Matter.Sleeping.set(sb, true);
+                console.debug(sb);
+                let neHeight = 600 - sb.position.y;
+                maxHeight = neHeight > maxHeight ? neHeight : maxHeight;
+                document.getElementById('heig').innerText = maxHeight;
+                sb.isStatic = true;
+                Matter.Body.setAngle(sb, 0);
+                let ner = Bodies.rectangle(400, 200, 80, 80, { label: 'k', render: { fillStyle: defaultBoxColor, inertia: Infinity } });
+                Composite.addBody(engine.world, ner)
+                changeBox();
+                sb = Composite.allBodies(engine.world).filter(x => x.label === 'k')[selectedBox];
+                sb.render.fillStyle = selectedBoxColor;
+                Body.setVelocity(sb, { x: 0, y: 0 });
             }
         })
+
+        Events.on(engine, 'collisionStart', function (event) {
+            var pairs = event.pairs;
+            console.log(event.pairs)
+            if (pairs[0].bodyA.label !== 'podlaha' && pairs[0].bodyB.label !== 'podlaha') {
+                console.log("Evento: ", event)
+                console.log("Pair no visible: ", pairs)
+                console.log("Pair visible: ", pairs[0]);
+                console.log("colision between " + pairs[0].bodyA.id + " - " + pairs[0].bodyB.id);
+                if (pairs[0].bodyA.label === 's') {
+                    Body.setVelocity(pairs[0].bodyB, { x: pairs[0].bodyB.velocity.x * -1, y: pairs[0].bodyB.velocity.y });
+                }
+                if (pairs[0].bodyB.label === 's') {
+                    Body.setVelocity(pairs[0].bodyA, { x: pairs[0].bodyA.velocity.x * -1, y: pairs[0].bodyA.velocity.y });
+                }
+            }
+        });
     </script>
 </body>
 
